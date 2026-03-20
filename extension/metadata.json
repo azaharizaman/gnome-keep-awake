@@ -1,0 +1,8 @@
+{
+  "uuid": "keep-awake@gnome.org",
+  "name": "Gnome Keep Awake",
+  "description": "Modern keep-awake utility with smart triggers and battery awareness.",
+  "shell-version": [ "50" ],
+  "url": "https://github.com/azaharizaman/gnome-keep-awake",
+  "settings-schema": "org.gnome.KeepAwake"
+}
