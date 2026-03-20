@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.gnome.KeepAwake.Daemon
+Exec=@bindir@/gnome-keep-awake-daemon
