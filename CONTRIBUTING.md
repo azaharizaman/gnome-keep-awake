@@ -24,7 +24,7 @@ If you have an idea for a new feature, please open an issue using the [Feature R
 We use **Meson** and **Ninja** for the build system.
 ```bash
 meson setup build
-ninja -C build
+meson compile -C build
 ```
 
 ## Code Style

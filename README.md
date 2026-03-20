@@ -19,11 +19,11 @@ A modern GNOME 50 utility designed to keep your system awake based on smart trig
 ### Build & Install
 ```bash
 meson setup build
-ninja -C build
+meson compile -C build
 # Install system-wide (requires sudo)
-sudo ninja -C build install
+sudo meson install -C build
 # Or for local development
-ninja -C build install --destdir=~/.local
+meson install -C build --destdir ~/.local
 ```
 
 ### Enable Extension
