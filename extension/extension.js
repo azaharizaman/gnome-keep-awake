@@ -221,7 +221,6 @@ class Indicator extends PanelMenu.Button {
         const triggers = this._settings.get_strv('smart-triggers');
         triggers.splice(index, 1);
         this._settings.set_strv('smart-triggers', triggers);
-        this._updateTriggersSubMenu();
     }
 
     _showAddTriggerDialog() {
@@ -238,20 +237,46 @@ class Indicator extends PanelMenu.Button {
         container.add_child(entry);
 
         const addButton = new St.Button({ label: 'Add' });
+        const closePopup = () => {
+            popupMenu.close();
+        };
         addButton.connect('clicked', () => {
             const appId = entry.get_text().trim();
             if (appId) {
                 const triggers = this._settings.get_strv('smart-triggers');
                 triggers.push(appId);
                 this._settings.set_strv('smart-triggers', triggers);
-                this._updateTriggersSubMenu();
             }
+            closePopup();
         });
         container.add_child(addButton);
 
         const popupMenu = new PopupMenu.PopupMenu(this._triggersSubMenu, 0.5, St.Side.TOP);
         popupMenu.box.add_child(container);
-        this.menu.addMenuItem(popupMenu);
+        popupMenu.connect('key-press-event', (menu, event) => {
+            if (event.get_key_symbol() === Clutter.Escape) {
+                closePopup();
+                return true;
+            }
+            if (event.get_key_symbol() === Clutter.Return) {
+                addButton.emit('clicked');
+                return true;
+            }
+            return false;
+        });
+
+        const closeOnOutsideClick = (actor, event) => {
+            if (!popupMenu.actor.contains(event.get_actor())) {
+                closePopup();
+            }
+        };
+
+        const connectionId = global.stage.connect('button-press-event', closeOnOutsideClick);
+        popupMenu.connect('closed', () => {
+            global.stage.disconnect(connectionId);
+            popupMenu.destroy();
+        });
+
         popupMenu.open(true);
     }
 

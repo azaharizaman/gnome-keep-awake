@@ -63,7 +63,7 @@ var KeepAwakeDaemon = GObject.registerClass({
     _init() {
         super._init();
 
-        this._dbusImpl = Gio.DBusExportedObject.wrapJS(DaemonInterface, this);
+        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(DaemonInterface, this);
         
         try {
             this._settings = new Gio.Settings({ schema_id: 'org.gnome.KeepAwake' });
@@ -148,26 +148,24 @@ var KeepAwakeDaemon = GObject.registerClass({
         this._sessionBus = Gio.DBus.session;
         
         // Initial list of players
-        this._sessionBus.call(
-            'org.freedesktop.DBus',
-            '/org/freedesktop/DBus',
-            'org.freedesktop.DBus',
-            'ListNames',
-            null,
-            null,
-            Gio.DBusCallFlags.NONE,
-            -1,
-            null,
-            (conn, result) => {
-                try {
-                    const [names] = conn.call_finish(result).unpack();
-                    names.filter(n => n.startsWith('org.mpris.MediaPlayer2.'))
-                         .forEach(n => this._addPlayer(n));
-                } catch (e) {
-                    console.error('Failed to list D-Bus names:', e.message);
-                }
-            }
-        );
+        try {
+            const reply = this._sessionBus.call_sync(
+                'org.freedesktop.DBus',
+                '/org/freedesktop/DBus',
+                'org.freedesktop.DBus',
+                'ListNames',
+                null,
+                null,
+                Gio.DBusCallFlags.NONE,
+                -1,
+                null
+            );
+            const names = reply.get_child_value(0).deepUnpack();
+            names.filter(n => typeof n === 'string' && n.startsWith('org.mpris.MediaPlayer2.'))
+                 .forEach(n => this._addPlayer(n));
+        } catch (e) {
+            console.error('Failed to list D-Bus names:', e.message);
+        }
 
         // Watch for new players
         this._sessionBus.signal_subscribe(
@@ -178,8 +176,10 @@ var KeepAwakeDaemon = GObject.registerClass({
             null,
             Gio.DBusSignalFlags.NONE,
             (conn, sender, path, iface, signal, parameters) => {
-                const [name, oldOwner, newOwner] = parameters.unpack();
-                if (name.startsWith('org.mpris.MediaPlayer2.')) {
+                const name = parameters.get_child_value(0).deepUnpack();
+                const oldOwner = parameters.get_child_value(1).deepUnpack();
+                const newOwner = parameters.get_child_value(2).deepUnpack();
+                if (typeof name === 'string' && name.startsWith('org.mpris.MediaPlayer2.')) {
                     if (newOwner && !oldOwner) {
                         this._addPlayer(name);
                     } else if (oldOwner && !newOwner) {
