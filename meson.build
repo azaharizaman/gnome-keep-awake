@@ -1,4 +1,4 @@
-project('gnome-keep-awake', 'c',
+project('gnome-keep-awake',
   version: '1.0.0',
   meson_version: '>= 0.62.0',
 )
