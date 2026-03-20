@@ -6,6 +6,7 @@ import St from 'gi://St';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Clutter from 'gi://Clutter';
 
 const DaemonIface = `
 <node>
@@ -63,6 +64,14 @@ class Indicator extends PanelMenu.Button {
         });
         this.menu.addMenuItem(this._menuItem);
 
+        this._thresholdItem = new PopupMenu.PopupMenuItem(
+            `Auto-pause below: ${this._settings.get_int('battery-threshold')}%`
+        );
+        this._thresholdItem.connect('activate', () => {
+            this._showThresholdPopup(this._thresholdItem);
+        });
+        this.menu.addMenuItem(this._thresholdItem);
+
         this._statusLabel = new PopupMenu.PopupMenuItem('Status: Inactive', {
             reactive: false,
             activate: false,
@@ -97,9 +106,9 @@ class Indicator extends PanelMenu.Button {
             iconName = 'sunny-symbolic';
             statusText = `Status: Active (${this._reason})`;
         } else if (enabled) {
-            // It should be active but isn't. Likely battery warning.
+            // It should be active but isn't - could be battery or other reasons
             iconName = 'power-profile-power-saver-symbolic';
-            statusText = 'Status: Warning (Battery Low)';
+            statusText = `Status: Paused (${this._reason || 'check logs'})`;
         } else if (this._reason === 'Media Playback') {
              // Daemon might signal media playback even if manual is off
              iconName = 'sunny-symbolic';
@@ -108,6 +117,52 @@ class Indicator extends PanelMenu.Button {
 
         this._icon.icon_name = iconName;
         this._statusLabel.label.text = statusText;
+    }
+
+    _showThresholdPopup(anchor) {
+        const threshold = this._settings.get_int('battery-threshold');
+
+        const container = new St.BoxLayout({
+            vertical: true,
+            style_class: 'popup-menu-content',
+            x_align: Clutter.ActorAlign.CENTER,
+        });
+
+        const label = new St.Label({ text: `${threshold}%` });
+        const slider = new St.Slider({ value: threshold / 100 });
+
+        slider.connect('value-changed', (s, value) => {
+            const valueInt = Math.round(value * 100);
+            label.text = `${valueInt}%`;
+            this._settings.set_int('battery-threshold', valueInt);
+        });
+
+        container.add_child(label);
+        container.add_child(slider);
+
+        const popupMenu = new PopupMenu.PopupMenu(anchor, 0.5, St.Side.TOP);
+        popupMenu.box.add_child(container);
+        popupMenu.connect('key-press-event', (menu, event) => {
+            if (event.get_key_symbol() === Clutter.Escape) {
+                popupMenu.close();
+                return true;
+            }
+            return false;
+        });
+
+        const closeOnOutsideClick = (actor, event) => {
+            if (!popupMenu.actor.contains(event.get_actor())) {
+                popupMenu.close();
+            }
+        };
+
+        const connectionId = global.stage.connect('button-press-event', closeOnOutsideClick);
+        popupMenu.connect('closed', () => {
+            global.stage.disconnect(connectionId);
+        });
+
+        this.menu.addMenuItem(popupMenu);
+        popupMenu.open(true);
     }
 
     destroy() {
