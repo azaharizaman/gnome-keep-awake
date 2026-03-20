@@ -72,6 +72,12 @@ class Indicator extends PanelMenu.Button {
         });
         this.menu.addMenuItem(this._thresholdItem);
 
+        this._triggersSubMenu = new PopupMenu.PopupSubMenuMenuItem(
+            `Smart triggers: ${this._settings.get_strv('smart-triggers').length} apps`
+        );
+        this._updateTriggersSubMenu();
+        this.menu.addMenuItem(this._triggersSubMenu);
+
         this._statusLabel = new PopupMenu.PopupMenuItem('Status: Inactive', {
             reactive: false,
             activate: false,
@@ -86,6 +92,15 @@ class Indicator extends PanelMenu.Button {
                 this._menuItem.setToggleState(enabled);
             }
             this._updateIcon();
+        });
+
+        this._settings.connect('changed::battery-threshold', () => {
+            const threshold = this._settings.get_int('battery-threshold');
+            this._thresholdItem.label.text = `Auto-pause below: ${threshold}%`;
+        });
+
+        this._settings.connect('changed::smart-triggers', () => {
+            this._updateTriggersSubMenu();
         });
 
         this._updateState(false, 'Initializing...');
@@ -159,8 +174,83 @@ class Indicator extends PanelMenu.Button {
         const connectionId = global.stage.connect('button-press-event', closeOnOutsideClick);
         popupMenu.connect('closed', () => {
             global.stage.disconnect(connectionId);
+            popupMenu.destroy();
         });
 
+        popupMenu.open(true);
+    }
+
+    _updateTriggersSubMenu() {
+        const triggers = this._settings.get_strv('smart-triggers');
+        this._triggersSubMenu.label.text = `Smart triggers: ${triggers.length} apps`;
+
+        this._triggersSubMenu.menu.removeAll();
+
+        const header = new PopupMenu.PopupMenuItem('Smart Triggers', {
+            reactive: false,
+            activate: false,
+        });
+        header.label.style = 'font-weight: bold; color: #888;';
+        this._triggersSubMenu.menu.addMenuItem(header);
+
+        triggers.forEach((appId, index) => {
+            const item = new PopupMenu.PopupMenuItem(appId);
+
+            const removeBtn = new St.Button({
+                label: '×',
+                style_class: 'system-button',
+            });
+            removeBtn.connect('clicked', () => {
+                this._removeTrigger(index);
+            });
+
+            item.actor.add_child(removeBtn);
+            removeBtn.x_align = Clutter.ActorAlign.END;
+
+            this._triggersSubMenu.menu.addMenuItem(item);
+        });
+
+        const addItem = new PopupMenu.PopupMenuItem('Add application...');
+        addItem.connect('activate', () => {
+            this._showAddTriggerDialog();
+        });
+        this._triggersSubMenu.menu.addMenuItem(addItem);
+    }
+
+    _removeTrigger(index) {
+        const triggers = this._settings.get_strv('smart-triggers');
+        triggers.splice(index, 1);
+        this._settings.set_strv('smart-triggers', triggers);
+        this._updateTriggersSubMenu();
+    }
+
+    _showAddTriggerDialog() {
+        const entry = new St.Entry({
+            hint_text: 'e.g., org.mozilla.firefox',
+            style_class: 'system-dialog-entry',
+        });
+
+        const container = new St.BoxLayout({
+            vertical: false,
+            style_class: 'popup-menu-content',
+        });
+
+        container.add_child(entry);
+
+        const addButton = new St.Button({ label: 'Add' });
+        addButton.connect('clicked', () => {
+            const appId = entry.get_text().trim();
+            if (appId) {
+                const triggers = this._settings.get_strv('smart-triggers');
+                triggers.push(appId);
+                this._settings.set_strv('smart-triggers', triggers);
+                this._updateTriggersSubMenu();
+            }
+        });
+        container.add_child(addButton);
+
+        const popupMenu = new PopupMenu.PopupMenu(this._triggersSubMenu, 0.5, St.Side.TOP);
+        popupMenu.box.add_child(container);
         this.menu.addMenuItem(popupMenu);
         popupMenu.open(true);
     }
