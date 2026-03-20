@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-keep-awake">
+  <schema id="org.gnome.KeepAwake" path="/org/gnome/KeepAwake/">
+    <key name="enabled" type="b">
+      <default>false</default>
+      <summary>Enable keep-awake</summary>
+    </key>
+    <key name="battery-threshold" type="i">
+      <default>20</default>
+      <summary>Battery percentage threshold to auto-disable</summary>
+    </key>
+    <key name="smart-triggers" type="as">
+      <default>[]</default>
+      <summary>List of application IDs to trigger keep-awake</summary>
+    </key>
+  </schema>
+</schemalist>
