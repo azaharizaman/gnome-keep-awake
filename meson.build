@@ -9,3 +9,7 @@ gnome = import('gnome')
 subdir('data')
 subdir('src')
 subdir('extension')
+
+run_target('enable-extension',
+  command: [meson.project_source_root() / 'scripts/enable-extension.sh']
+)

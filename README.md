@@ -12,6 +12,7 @@ A modern GNOME 50 utility designed to keep your system awake based on smart trig
 ## Installation
 
 ### Dependencies
+- Fedora 44 beta (or another GNOME 50 distro)
 - GNOME 50
 - GJS (GNOME JavaScript)
 - Meson & Ninja (for building)
@@ -19,20 +20,26 @@ A modern GNOME 50 utility designed to keep your system awake based on smart trig
 ### Build & Install
 ```bash
 # System-wide installation (requires sudo)
-meson setup --prefix=/usr build
-meson compile -C build
-sudo meson install -C build
+meson setup --prefix=/usr build-system
+meson compile -C build-system
+sudo meson install -C build-system
 
 # Local development installation
-meson setup --prefix=$HOME/.local build
-meson compile -C build
-meson install -C build
+meson setup --prefix=$HOME/.local build-user
+meson compile -C build-user
+meson install -C build-user
 ```
 
 ### Enable Extension
 ```bash
-gnome-extensions enable keep-awake@gnome.org
+./scripts/enable-extension.sh
+# or via Meson target
+meson compile -C build-user enable-extension
 ```
+
+If `./scripts/enable-extension.sh` says GNOME Shell has not discovered the extension yet:
+- On Fedora 44 beta / GNOME 50 (Wayland-only), log out and log back in.
+- Then run `./scripts/enable-extension.sh` again.
 
 ## Configuration
 
